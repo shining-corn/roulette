@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Roulette</title>
+
+    <style>
+        body {
+            width: 100%;
+            margin: 0;
+            padding: 5px;
+        }
+
+        canvas {
+            margin: auto;
+            padding: 0;
+            width: 90%;
+            min-width: 200px;
+            max-width: 400px;
+            height: auto;
+        }
+
+        .flex-parent {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .flex-child {
+            padding: 10px;
+        }
+
+        .roulette-controlls {
+            min-width: 200px;
+            max-width: 400px;
+            border: 1px solid black;
+        }
+
+        @media screen and (max-width:480px) {
+            .roulette-controlls {
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #start {
+            width: 90%;
+            text-align: center;
+        }
+
+        #list li {
+            width: 100%;
+            word-wrap: break-word;
+            margin: 4px 0 4px 0;
+        }
+
+        #list li a {
+            float: right;
+            color: gray;
+            text-decoration: none;
+        }
+
+        #result {
+            position: absolute;
+            top: 150px;
+            left: 0px;
+            width: 90%;
+            min-width: 200px;
+            max-width: 335px;
+            min-height: 2em;
+            margin: 20px;
+            padding: 0;
+            border-radius: 0.5em;
+            border: 2px solid black;
+            background: white;
+            text-align: center;
+            font-size: 2em;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="flex-parent">
+        <div class="flex-child">
+            <canvas id="canvas"></canvas>
+            <div id="result" class="hidden"></div>
+        </div>
+        <div class="flex-child roulette-controlls">
+            <button id="start">START</button>
+
+            <ul id="list">
+            </ul>
+
+            <div>
+                <input id="item" maxlength="30"><button id="add" disabled="disabled">追加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Main {
+            constructor(callback) {
+                this.callback = callback;
+            }
+
+            run() {
+                const func = (ts) => {
+                    this.callback(ts);
+                    window.requestAnimationFrame((ts) => func(ts));
+                };
+                window.requestAnimationFrame((ts) => func(ts));
+            }
+        }
+
+        class ColorGenerator {
+            static getColors(num) {
+                let colors = [];
+                for (let i = 0; i < num; i++) {
+                    const hue = i * 360 / num;
+                    colors[i] = `hsl(${hue},80%,50%)`;
+                }
+
+                return colors;
+            }
+        }
+
+        class List {
+            constructor() {
+                this.listReceiver = null;
+                this.tagAddButton = document.getElementById('add');
+                this.tagItem = document.getElementById('item');
+                this.tagList = document.getElementById('list');
+
+                this.tagAddButton.addEventListener('click', () => {
+                    this._addItem(this.tagItem.value);
+                    this.tagItem.value = '';
+                    this._onChangeText(event, this.tagAddButton);
+                });
+
+                this.tagItem.addEventListener('change', (event) => {
+                    this._onChangeText(event, this.tagAddButton);
+                });
+                this.tagItem.addEventListener('input', (event) => {
+                    this._onChangeText(event, this.tagAddButton);
+                });
+                this.tagItem.addEventListener('keyup', (event) => {
+                    this._onChangeText(event, this.tagAddButton);
+                });
+            }
+
+            init() {
+                this._addItem('1');
+                this._addItem('2');
+                this._addItem('3');
+            }
+
+            isEmpty() {
+                return this.tagList.children.length == 0;
+            }
+
+            _onChangeText(event, tag) {
+                if (event.target.value.length) {
+                    tag.removeAttribute('disabled');
+                }
+                else {
+                    tag.setAttribute('disabled', 'disabled');
+                }
+            }
+
+            _addItem(text) {
+                const newListItem = document.createElement('li');
+                const itemText = document.createElement('span');
+                itemText.innerText = text;
+
+                const removeButton = document.createElement('a');
+                removeButton.innerHTML = '&#x2716;';
+                removeButton.href = '#';
+                removeButton.addEventListener('click', (event) => {
+                    event.target.parentNode.remove();
+                    this.listReceiver.setList(this._makeList());
+
+                    if (this.postChangeList) {
+                        this.postChangeList();
+                    }
+                });
+
+                const clear = document.createElement('span');
+                clear.clear = 'both';
+
+                newListItem.appendChild(itemText);
+                newListItem.appendChild(removeButton);
+                newListItem.appendChild(clear);
+                this.tagList.appendChild(newListItem);
+
+                this.listReceiver.setList(this._makeList());
+
+                if (this.postChangeList) {
+                    this.postChangeList();
+                }
+            }
+
+            _makeList() {
+                const list = [];
+                for (let i = 0; i < this.tagList.children.length; i++) {
+                    list[i] = this.tagList.children[i].children[0].innerText;
+                }
+
+                return list;
+            }
+        }
+
+        class Roulette {
+            constructor(args) {
+                this.x = args.x;
+                this.y = args.y;
+                this.radius = args.radius;
+                this.list = args.list;   // [string] ルーレットの選択肢
+                this.onStop = args.onStop;  // ルーレット停止時の処理
+
+                this.angle = 0;
+                this.arcDegree = 0;
+                this.velocity = 0;
+                this.acceleration = 0;
+            }
+
+            setList(list) {
+                this.list = list;
+            }
+
+            start() {
+                if (this.velocity == 0) {
+                    this.velocity = 20;
+                    this.goal = Math.floor(Math.random() * 360);
+                }
+            }
+
+            _rotate() {
+                this.arcDegree = (this.arcDegree + (this.velocity > 10 ? 10 : this.velocity)) % 360;
+                this.angle = this.arcDegree * Math.PI / 180;
+            }
+
+            do() {
+                if (this.list.length == 0) {
+                    this.velocity = 0;
+                    this.acceleration = 0;
+                }
+                if (this.velocity > 0) {
+                    if (this.goal + 10 < 360) {
+                        if ((this.goal <= this.arcDegree) && (this.arcDegree < this.goal + 10)) {
+                            this.acceleration = -0.1;
+                        }
+                    }
+                    else {
+                        if ((this.goal <= this.arcDegree) || (this.arcDegree < this.goal - 350)) {
+                            this.acceleration = -0.1;
+                        }
+                    }
+
+                    this.velocity += this.acceleration;
+                    if (this.velocity <= 0) {
+                        this.velocity = 0;
+                        this.acceleration = 0;
+                        this._onStop();
+                    }
+
+                    this._rotate();
+                }
+
+            }
+
+            _onStop() {
+                const selected = Math.floor((360 - ((this.arcDegree + 90) % 360)) / (360 / this.list.length))
+                this.onStop(this.list[selected]);
+            }
+
+            draw(canvas) {
+                const ctx = canvas.getContext('2d');
+                const angleBySlice = 2 * Math.PI / this.list.length;
+                const colors = ColorGenerator.getColors(this.list.length);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                ctx.beginPath();
+                ctx.fillStyle = 'black';
+                ctx.moveTo(this.x - 20, 2);
+                ctx.lineTo(this.x + 20, 2);
+                ctx.lineTo(this.x, 22);
+                ctx.lineTo(this.x - 20, 2);
+                ctx.fill();
+                ctx.closePath();
+
+                for (let i = 0; i < this.list.length; i++) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.angle + angleBySlice * i);
+
+                    ctx.beginPath();
+                    ctx.lineTo(this.radius, 0);
+                    ctx.arc(0, 0, this.radius, 0, angleBySlice);
+                    ctx.lineTo(0, 0);
+                    ctx.fillStyle = colors[i];
+                    ctx.fill();
+                    ctx.closePath();
+
+                    ctx.beginPath();
+                    ctx.fillStyle = 'white';
+                    ctx.textBaseline = 'middle';
+                    ctx.rotate(angleBySlice / 2);
+                    ctx.font = '48px serif';
+                    const text = this._trimText(ctx, this.list[i], this.radius - 28);
+                    const textWidth = ctx.measureText(text).width;
+                    ctx.fillText(text, (this.radius - textWidth + 28) / 2, 0);
+                    ctx.closePath();
+
+                    ctx.restore();
+                }
+            }
+
+            _trimText(ctx, text, maxWidth) {
+                let trimed = text;
+                let x = ctx.measureText(trimed);
+                while (x.width > maxWidth) {
+                    trimed = trimed.slice(0, length - 1);
+                    x = ctx.measureText(trimed);
+                }
+                return trimed;
+            }
+        }
+
+        (() => {
+            const canvas = document.getElementById('canvas');
+            canvas.width = 800;
+            canvas.height = 800;
+
+            const tagResult = document.getElementById('result');
+            const list = new List();
+            const roulette = new Roulette({
+                list: ['1', '2', '3'],
+                x: canvas.width / 2,
+                y: canvas.height / 2 + 20,
+                radius: Math.min(canvas.width, canvas.height) / 2.1,
+                onStop: (selectedItem) => {
+                    tagResult.innerText = selectedItem;
+                    tagResult.classList.remove('hidden');
+                },
+            });
+
+            const startButton = document.getElementById('start');
+            startButton.addEventListener('click', () => {
+                roulette.start();
+                tagResult.classList.add('hidden');
+            });
+
+            list.listReceiver = roulette;
+            list.init();
+            list.postChangeList = () => {
+                tagResult.classList.add('hidden');
+
+                if (list.isEmpty()) {
+                    startButton.setAttribute('disabled', 'disabled');
+                }
+                else {
+                    startButton.removeAttribute('disabled');
+                }
+            };
+
+            const main = new Main((args) => {
+                roulette.do();
+                roulette.draw(canvas);
+            });
+
+            main.run();
+        })();
+    </script>
+</body>
+
+</html>
