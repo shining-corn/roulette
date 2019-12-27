@@ -91,7 +91,7 @@
     <div class="flex-parent">
         <div class="flex-child">
             <canvas id="canvas"></canvas>
-            <div id="result" class="hidden"></div>
+            <div id="result" class="hidden"><div></div><button>OK</button></div>
         </div>
         <div class="flex-child roulette-controlls">
             <button id="start">START</button>
@@ -354,9 +354,13 @@
                 y: canvas.height / 2 + 20,
                 radius: Math.min(canvas.width, canvas.height) / 2.1,
                 onStop: (selectedItem) => {
-                    tagResult.innerText = selectedItem;
+                    tagResult.children[0].innerText = selectedItem;
                     tagResult.classList.remove('hidden');
                 },
+            });
+
+            tagResult.children[1].addEventListener('click', () => {
+                tagResult.classList.add('hidden');
             });
 
             const startButton = document.getElementById('start');
