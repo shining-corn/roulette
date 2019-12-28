@@ -49,6 +49,14 @@
             display: none;
         }
 
+        .option {
+            margin-top: 10px;
+        }
+
+        .footer {
+            margin-top: 200px;
+        }
+
         #start {
             width: 90%;
             text-align: center;
@@ -91,7 +99,9 @@
     <div class="flex-parent">
         <div class="flex-child">
             <canvas id="canvas"></canvas>
-            <div id="result" class="hidden"><div></div><button>OK</button></div>
+            <div id="result" class="hidden">
+                <div></div><button>OK</button>
+            </div>
         </div>
         <div class="flex-child roulette-controlls">
             <button id="start">START</button>
@@ -103,11 +113,27 @@
                 <input id="item" maxlength="30">
                 <button id="add" disabled="disabled">追加</button>
             </div>
+
+            <div class="option">
+                <label><input id="equally" type="checkbox">均等に出るモード</label>
+            </div>
         </div>
+
+        <fieldset id="history" class="flex-child roulette-controlls hidden">
+            <legend>history</legend>
+
+            <button id="clear">CLEAR</button>
+            <div id="history-list">
+            </div>
+        </fieldset>
+    </div>
+
+    <div class="footer">
+        <a href="https://github.com/shining-corn/roulette">ソースコード</a>
     </div>
 
     <script>
-        class Main {
+        class Animation {
             constructor(callback) {
                 this.callback = callback;
             }
@@ -193,17 +219,17 @@
                     event.target.parentNode.remove();
                     this.listReceiver.setList(this._makeList());
 
+                    event.preventDefault();
+
                     if (this.postChangeList) {
                         this.postChangeList();
                     }
-                });
 
-                const clear = document.createElement('span');
-                clear.clear = 'both';
+                    return false;
+                });
 
                 newListItem.appendChild(itemText);
                 newListItem.appendChild(removeButton);
-                newListItem.appendChild(clear);
                 this.tagList.appendChild(newListItem);
 
                 this.listReceiver.setList(this._makeList());
@@ -235,22 +261,39 @@
                 this.arcDegree = 0;
                 this.velocity = 0;
                 this.acceleration = 0;
+                this.entropyMode = false;
+                this.entropies = [];
+                this.lastSelected = null;
+            }
+
+            setEntropyMode(mode) {
+                this.entropyMode = mode;
             }
 
             setList(list) {
                 this.list = list;
+                this.entropies = [];
+                for (let i = 0; i < this.list.length; i++) {
+                    this.entropies[i] = 1;
+                }
+                this.lastSelected = null;
             }
 
             start() {
                 if (this.velocity == 0) {
-                    this.velocity = 20;
-                    this.goal = Math.floor(Math.random() * 360);
-                }
-            }
+                    if (this.entropyMode && this.lastSelected != null) {
+                        this.entropies[this.lastSelected] = 0;
 
-            _rotate() {
-                this.arcDegree = (this.arcDegree + (this.velocity > 10 ? 10 : this.velocity)) % 360;
-                this.angle = this.arcDegree * Math.PI / 180;
+                        if (this.entropies.reduce((previousValue, currentValue) => previousValue + currentValue) == 0) {
+                            for (let i = 0; i < this.entropies.length; i++) {
+                                this.entropies[i] = 1;
+                            }
+                        }
+                    }
+
+                    this.velocity = 20;
+                    this.decelerationPoint = Math.floor(Math.random() * 360);
+                }
             }
 
             do() {
@@ -259,13 +302,13 @@
                     this.acceleration = 0;
                 }
                 if (this.velocity > 0) {
-                    if (this.goal + 10 < 360) {
-                        if ((this.goal <= this.arcDegree) && (this.arcDegree < this.goal + 10)) {
+                    if (this.decelerationPoint + 10 < 360) {
+                        if ((this.decelerationPoint <= this.arcDegree) && (this.arcDegree < this.decelerationPoint + 10)) {
                             this.acceleration = -0.1;
                         }
                     }
                     else {
-                        if ((this.goal <= this.arcDegree) || (this.arcDegree < this.goal - 350)) {
+                        if ((this.decelerationPoint <= this.arcDegree) || (this.arcDegree < this.decelerationPoint - 350)) {
                             this.acceleration = -0.1;
                         }
                     }
@@ -279,17 +322,19 @@
 
                     this._rotate();
                 }
-
-            }
-
-            _onStop() {
-                const selected = Math.floor((360 - ((this.arcDegree + 90) % 360)) / (360 / this.list.length))
-                this.onStop(this.list[selected]);
             }
 
             draw(canvas) {
                 const ctx = canvas.getContext('2d');
-                const angleBySlice = 2 * Math.PI / this.list.length;
+                let angleBySlice;
+                if (this.entropyMode) {
+                    const sum = this.entropies.reduce((previousValue, currentValue) => previousValue + currentValue);
+                    angleBySlice = 2 * Math.PI / sum;
+                }
+                else {
+                    angleBySlice = 2 * Math.PI / this.list.length;
+                }
+
                 const colors = ColorGenerator.getColors(this.list.length);
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -303,10 +348,15 @@
                 ctx.fill();
                 ctx.closePath();
 
+                let sliceIndex = 0;
                 for (let i = 0; i < this.list.length; i++) {
+                    if (this.entropyMode && this.entropies[i] == 0) {
+                        continue;
+                    }
+
                     ctx.save();
                     ctx.translate(this.x, this.y);
-                    ctx.rotate(this.angle + angleBySlice * i);
+                    ctx.rotate(this.angle + angleBySlice * sliceIndex);
 
                     ctx.beginPath();
                     ctx.lineTo(this.radius, 0);
@@ -327,13 +377,51 @@
                     ctx.closePath();
 
                     ctx.restore();
+
+                    sliceIndex++;
                 }
+            }
+
+            _rotate() {
+                this.arcDegree = (this.arcDegree + (this.velocity > 10 ? 10 : this.velocity)) % 360;
+                this.angle = this.arcDegree * Math.PI / 180;
+            }
+
+            _onStop() {
+                let degreeBySlice;
+                if (this.entropyMode) {
+                    const sum = this.entropies.reduce((previousValue, currentValue) => previousValue + currentValue);
+                    degreeBySlice = 360 / sum;
+                }
+                else {
+                    degreeBySlice = 360 / this.list.length;
+                }
+                let selected = Math.floor((360 - ((this.arcDegree + 90) % 360)) / degreeBySlice);
+
+                if (this.entropyMode) {
+                    for (let i = 0; i < this.entropies.length; i++) {
+                        if (this.entropies[i] == 1) {
+                            selected--;
+                        }
+                        if (selected == -1) {
+                            selected = i;
+                            break;
+                        }
+                    }
+                }
+
+                this.lastSelected = selected;
+
+                console.log(this.list[selected]);
+
+                this.onStop(this.list[selected]);
             }
 
             _trimText(ctx, text, maxWidth) {
                 let trimed = text;
                 let x = ctx.measureText(trimed);
                 while (x.width > maxWidth) {
+                    // FIXME: 長い文字列を大量に設定されるとアニメーションが遅くなる
                     trimed = trimed.slice(0, length - 1);
                     x = ctx.measureText(trimed);
                 }
@@ -346,6 +434,12 @@
             canvas.width = 800;
             canvas.height = 800;
 
+            const tagHistory = document.getElementById('history');
+            document.getElementById('clear').addEventListener('click', () => {
+                tagHistory.classList.add('hidden');
+                document.getElementById('history-list').innerText = '';
+            });
+
             const tagResult = document.getElementById('result');
             const list = new List();
             const roulette = new Roulette({
@@ -356,6 +450,11 @@
                 onStop: (selectedItem) => {
                     tagResult.children[0].innerText = selectedItem;
                     tagResult.classList.remove('hidden');
+
+                    const history = document.createElement('div');
+                    history.innerText = selectedItem;
+                    document.getElementById('history-list').appendChild(history);
+                    tagHistory.classList.remove('hidden');
                 },
             });
 
@@ -382,12 +481,17 @@
                 }
             };
 
-            const main = new Main((args) => {
+            const tagEqually = document.getElementById('equally');
+            tagEqually.addEventListener('click', (event) => {
+                roulette.entropyMode = event.target.checked;
+            })
+
+            const animation = new Animation((args) => {
                 roulette.do();
                 roulette.draw(canvas);
             });
 
-            main.run();
+            animation.run();
         })();
     </script>
 </body>
