@@ -400,7 +400,7 @@
                 else {
                     degreeBySlice = 360 / this.list.length;
                 }
-                let selected = Math.floor((360 - ((this.arcDegree + 90) % 360)) / degreeBySlice);
+                let selected = (Math.floor((360 - ((this.arcDegree + 90) % 360)) / degreeBySlice)) % this.list.length;
 
                 if (this.entropyMode) {
                     for (let i = 0; i < this.entropies.length; i++) {
@@ -413,6 +413,8 @@
                         }
                     }
                 }
+
+                console.log(selected, this.list[selected])
 
                 this.lastSelected = selected;
 
