@@ -115,7 +115,8 @@
             </div>
 
             <div class="option">
-                <label><input id="equally" type="checkbox">均等に出るモード</label>
+                <label><input id="equally" type="checkbox">均等に出るモード</label><br>
+                <label><input id="skip" type="checkbox">演出を短縮</label>
             </div>
         </div>
 
@@ -264,6 +265,7 @@
                 this.entropyMode = false;
                 this.entropies = [];
                 this.lastSelected = null;
+                this.skipMode = false;
             }
 
             setEntropyMode(mode) {
@@ -302,14 +304,16 @@
                     this.acceleration = 0;
                 }
                 if (this.velocity > 0) {
+                    const deceleration = this.skipMode ? -20 : -0.1;
+
                     if (this.decelerationPoint + 10 < 360) {
                         if ((this.decelerationPoint <= this.arcDegree) && (this.arcDegree < this.decelerationPoint + 10)) {
-                            this.acceleration = -0.1;
+                            this.acceleration = deceleration;
                         }
                     }
                     else {
                         if ((this.decelerationPoint <= this.arcDegree) || (this.arcDegree < this.decelerationPoint - 350)) {
-                            this.acceleration = -0.1;
+                            this.acceleration = deceleration;
                         }
                     }
 
@@ -412,8 +416,6 @@
 
                 this.lastSelected = selected;
 
-                console.log(this.list[selected]);
-
                 this.onStop(this.list[selected]);
             }
 
@@ -484,7 +486,12 @@
             const tagEqually = document.getElementById('equally');
             tagEqually.addEventListener('click', (event) => {
                 roulette.entropyMode = event.target.checked;
-            })
+            });
+
+            const tagSkip = document.getElementById('skip');
+            tagSkip.addEventListener('click', (event) => {
+                roulette.skipMode = event.target.checked;
+            });
 
             const animation = new Animation((args) => {
                 roulette.do();
