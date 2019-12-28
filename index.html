@@ -294,7 +294,7 @@
                     }
 
                     this.velocity = 20;
-                    this.decelerationPoint = Math.floor(Math.random() * 360);
+                    this.decelerationPoint = Math.random() * 360;
                 }
             }
 
@@ -306,14 +306,20 @@
                 if (this.velocity > 0) {
                     const deceleration = this.skipMode ? -20 : -0.1;
 
-                    if (this.decelerationPoint + 10 < 360) {
-                        if ((this.decelerationPoint <= this.arcDegree) && (this.arcDegree < this.decelerationPoint + 10)) {
-                            this.acceleration = deceleration;
+                    if (this.acceleration == 0) {
+                        if (this.decelerationPoint + 10 < 360) {
+                            if ((this.decelerationPoint <= this.arcDegree) && (this.arcDegree < this.decelerationPoint + 10)) {
+                                this.acceleration = deceleration;
+                                console.log(1, this.arcDegree)
+                            this.arcDegree += (this.decelerationPoint % 10) + parseFloat("0." + (String(this.decelerationPoint)).split(".")[1]);
+                                console.log(2, this.arcDegree)
+                            }
                         }
-                    }
-                    else {
-                        if ((this.decelerationPoint <= this.arcDegree) || (this.arcDegree < this.decelerationPoint - 350)) {
+                        else if ((this.decelerationPoint <= this.arcDegree) || (this.arcDegree < this.decelerationPoint - 350)) {
+                            console.log(1, this.arcDegree)
                             this.acceleration = deceleration;
+                            this.arcDegree += (this.decelerationPoint % 10) + parseFloat("0." + (String(this.decelerationPoint)).split(".")[1]);
+                            console.log(2, this.arcDegree)
                         }
                     }
 
