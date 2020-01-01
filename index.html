@@ -265,11 +265,19 @@
                 this.entropyMode = false;
                 this.entropies = [];
                 this.lastSelected = null;
+
                 this.skipMode = false;
             }
 
             setEntropyMode(mode) {
                 this.entropyMode = mode;
+                if (mode === false) {
+                    this.entropies = [];
+                    for (let i = 0; i < this.list.length; i++) {
+                        this.entropies[i] = 1;
+                    }
+                    this.lastSelected = null;
+                }
             }
 
             setList(list) {
@@ -487,7 +495,7 @@
 
             const tagEqually = document.getElementById('equally');
             tagEqually.addEventListener('click', (event) => {
-                roulette.entropyMode = event.target.checked;
+                roulette.setEntropyMode(event.target.checked);
             });
 
             const tagSkip = document.getElementById('skip');
