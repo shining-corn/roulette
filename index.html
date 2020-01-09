@@ -353,15 +353,6 @@
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                ctx.beginPath();
-                ctx.fillStyle = 'black';
-                ctx.moveTo(this.x - 20, 2);
-                ctx.lineTo(this.x + 20, 2);
-                ctx.lineTo(this.x, 22);
-                ctx.lineTo(this.x - 20, 2);
-                ctx.fill();
-                ctx.closePath();
-
                 let sliceIndex = 0;
                 for (let i = 0; i < this.list.length; i++) {
                     if (this.entropyMode && this.entropies[i] == 0) {
@@ -380,20 +371,39 @@
                     ctx.fill();
                     ctx.closePath();
 
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 10;
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
+
                     ctx.beginPath();
                     ctx.fillStyle = 'white';
                     ctx.textBaseline = 'middle';
                     ctx.rotate(angleBySlice / 2);
                     ctx.font = '48px serif';
-                    const text = this._trimText(ctx, this.list[i], this.radius - 28);
+                    const text = this.list[i];
                     const textWidth = ctx.measureText(text).width;
-                    ctx.fillText(text, (this.radius - textWidth + 28) / 2, 0);
+                    if (textWidth < this.radius) {
+                        ctx.fillText(text, (this.radius - textWidth + 28) / 2, 0);
+                    }
+                    else {
+                        ctx.fillText(text, 28, 0);
+                    }
                     ctx.closePath();
 
                     ctx.restore();
 
                     sliceIndex++;
                 }
+
+                ctx.beginPath();
+                ctx.fillStyle = 'black';
+                ctx.moveTo(this.x - 20, 2);
+                ctx.lineTo(this.x + 20, 2);
+                ctx.lineTo(this.x, 22);
+                ctx.lineTo(this.x - 20, 2);
+                ctx.fill();
+                ctx.closePath();
             }
 
             _rotate() {
@@ -427,17 +437,6 @@
                 }
 
                 this.onStop(this.list[selected]);
-            }
-
-            _trimText(ctx, text, maxWidth) {
-                let trimed = text;
-                let x = ctx.measureText(trimed);
-                while (x.width > maxWidth) {
-                    // FIXME: 長い文字列を大量に設定されるとアニメーションが遅くなる
-                    trimed = trimed.slice(0, length - 1);
-                    x = ctx.measureText(trimed);
-                }
-                return trimed;
             }
         }
 
