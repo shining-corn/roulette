@@ -365,16 +365,23 @@
 
                     ctx.beginPath();
                     ctx.lineTo(this.radius, 0);
-                    ctx.arc(0, 0, this.radius, 0, angleBySlice);
+                    if (angleBySlice != 2 * Math.PI) {
+                        ctx.arc(0, 0, this.radius, 0, angleBySlice);
+                    }
+                    else {
+                        ctx.arc(0, 0, this.radius - 5, 0, angleBySlice);
+                    }
                     ctx.lineTo(0, 0);
                     ctx.fillStyle = colors[i];
                     ctx.fill();
                     ctx.closePath();
 
-                    ctx.strokeStyle = 'white';
-                    ctx.lineWidth = 10;
-                    ctx.lineJoin = 'round';
-                    ctx.stroke();
+                    if (angleBySlice != 2 * Math.PI) {
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 10;
+                        ctx.lineJoin = 'round';
+                        ctx.stroke();
+                    }
 
                     ctx.beginPath();
                     ctx.fillStyle = 'white';
