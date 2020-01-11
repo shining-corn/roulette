@@ -26,16 +26,20 @@
         .flex-parent {
             display: flex;
             flex-wrap: wrap;
+            align-items: flex-start;
         }
 
         .flex-child {
             padding: 10px;
         }
 
+        .roulette-area {
+            text-align: center;
+        }
+
         .roulette-controlls {
             min-width: 200px;
-            max-width: 400px;
-            border: 1px solid black;
+            max-width: 420px;
         }
 
         @media screen and (max-width:480px) {
@@ -57,9 +61,19 @@
             margin-top: 200px;
         }
 
+        .scroll-area {
+            max-height: 75vh;
+            overflow: auto;
+        }
+
         #start {
-            width: 90%;
-            text-align: center;
+            font-size: 2em;
+            padding-left: 1em;
+            padding-right: 1em;
+        }
+
+        #add {
+            margin-top: 1em;
         }
 
         #list li {
@@ -97,36 +111,44 @@
 <body>
 
     <div class="flex-parent">
-        <div class="flex-child">
+        <div class="flex-child roulette-area">
             <canvas id="canvas"></canvas>
             <div id="result" class="hidden">
                 <div></div><button>OK</button>
             </div>
+            <div>
+                <button id="start">START</button>
+            </div>
         </div>
         <div class="flex-child roulette-controlls">
-            <button id="start">START</button>
+            <fieldset>
+                <legend>設定</legend>
+                <div class="scroll-area">
+                    <ul id="list">
+                    </ul>
+                </div>
 
-            <ul id="list">
-            </ul>
+                <div>
+                    <input id="item" maxlength="30">
+                    <button id="add" disabled="disabled">追加</button>
+                </div>
 
-            <div>
-                <input id="item" maxlength="30">
-                <button id="add" disabled="disabled">追加</button>
-            </div>
-
-            <div class="option">
-                <label><input id="equally" type="checkbox">均等に出るモード</label><br>
-                <label><input id="skip" type="checkbox">演出を短縮</label>
-            </div>
+                <div class="option">
+                    <label><input id="equally" type="checkbox">均等に出るモード</label><br>
+                    <label><input id="skip" type="checkbox">演出を短縮</label>
+                </div>
+            </fieldset>
         </div>
 
-        <fieldset id="history" class="flex-child roulette-controlls hidden">
-            <legend>history</legend>
+        <div id="history" class="flex-child roulette-controlls">
+            <fieldset>
+                <legend>履歴</legend>
 
-            <button id="clear">CLEAR</button>
-            <div id="history-list">
-            </div>
-        </fieldset>
+                <button id="clear">CLEAR</button>
+                <div id="history-list" class="scroll-area hidden">
+                </div>
+            </fieldset>
+        </div>
     </div>
 
     <div class="footer">
@@ -383,6 +405,8 @@
                         ctx.stroke();
                     }
 
+                    ctx.clip();
+
                     ctx.beginPath();
                     ctx.fillStyle = 'white';
                     ctx.textBaseline = 'middle';
@@ -452,9 +476,9 @@
             canvas.width = 800;
             canvas.height = 800;
 
-            const tagHistory = document.getElementById('history');
+            const tagHistoryList = document.getElementById('history-list');
             document.getElementById('clear').addEventListener('click', () => {
-                tagHistory.classList.add('hidden');
+                tagHistoryList.classList.add('hidden');
                 document.getElementById('history-list').innerText = '';
             });
 
@@ -472,7 +496,7 @@
                     const history = document.createElement('div');
                     history.innerText = selectedItem;
                     document.getElementById('history-list').appendChild(history);
-                    tagHistory.classList.remove('hidden');
+                    tagHistoryList.classList.remove('hidden');
                 },
             });
 

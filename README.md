@@ -1,9 +1,4 @@
 # roulette
-ブラウザ上で動作するルーレットです。
+ブラウザ上で動作するルーレット
 
 https://shining-corn.github.io/roulette/
-
-
-
-
-ジェームズより　愛をこめて
