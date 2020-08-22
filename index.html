@@ -293,11 +293,19 @@
                 this.arcDegree = 0;
                 this.velocity = 0;
                 this.acceleration = 0;
-                this.entropyMode = false;
+                this.entropyMode = document.getElementById('equally').checked;
                 this.entropies = [];
                 this.lastSelected = null;
 
-                this.spinMode = 'spin-middle';
+                if (document.getElementById('spin-short').checked) {
+                    this.spinMode = 'spin-short';
+                }
+                else if (document.getElementById('spin-middle').checked) {
+                    this.spinMode = 'spin-middle';
+                }
+                else {
+                    this.spinMode = 'spin-long';
+                }
             }
 
             setEntropyMode(mode) {
