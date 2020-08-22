@@ -62,7 +62,7 @@
         }
 
         .scroll-area {
-            max-height: 75vh;
+            max-height: 70vh;
             overflow: auto;
         }
 
@@ -123,19 +123,28 @@
         <div class="flex-child roulette-controlls">
             <fieldset>
                 <legend>設定</legend>
-                <div class="scroll-area">
-                    <ul id="list">
-                    </ul>
-                </div>
+                <fieldset>
+                    <legend>マス</legend>
+                    <div class="scroll-area">
+                        <ul id="list">
+                        </ul>
+                    </div>
 
-                <div>
-                    <input id="item" maxlength="30">
-                    <button id="add" disabled="disabled">追加</button>
-                </div>
+                    <div>
+                        <input id="item" maxlength="30">
+                        <button id="add" disabled="disabled">追加</button>
+                    </div>
+                </fieldset>
 
                 <div class="option">
+                    <fieldset>
+                        <legend>回転の長さ</legend>
+                        <label><input id="spin-short" name="spin" type="radio">短</label>
+                        <label><input id="spin-middle" name="spin" type="radio" checked>中</label>
+                        <label><input id="spin-long" name="spin" type="radio">長</label>
+                    </fieldset>
+                    <br>
                     <label><input id="equally" type="checkbox">均等に出るモード</label><br>
-                    <label><input id="skip" type="checkbox">演出を短縮</label>
                 </div>
             </fieldset>
         </div>
@@ -288,7 +297,7 @@
                 this.entropies = [];
                 this.lastSelected = null;
 
-                this.skipMode = false;
+                this.spinMode = 'spin-middle';
             }
 
             setEntropyMode(mode) {
@@ -323,7 +332,7 @@
                         }
                     }
 
-                    this.velocity = 20;
+                    this.velocity = this.spinMode === 'spin-long' ? 10 : 20;
                     this.decelerationPoint = Math.random() * 360;
                 }
             }
@@ -334,7 +343,7 @@
                     this.acceleration = 0;
                 }
                 if (this.velocity > 0) {
-                    const deceleration = this.skipMode ? -20 : -0.1;
+                    const deceleration = this.spinMode === 'spin-long' ? (-0.8 * (Math.random() * 0.004 + 0.012)) : (this.spinMode === 'spin-middle' ? -0.075 : -20);
 
                     if (this.acceleration == 0) {
                         if (this.decelerationPoint + 10 < 360) {
@@ -528,9 +537,19 @@
                 roulette.setEntropyMode(event.target.checked);
             });
 
-            const tagSkip = document.getElementById('skip');
-            tagSkip.addEventListener('click', (event) => {
-                roulette.skipMode = event.target.checked;
+            const tagSpinShort = document.getElementById('spin-short');
+            tagSpinShort.addEventListener('click', (event) => {
+                roulette.spinMode = 'spin-short';
+            });
+
+            const tagSpinMiddle = document.getElementById('spin-middle');
+            tagSpinMiddle.addEventListener('click', (event) => {
+                roulette.spinMode = 'spin-middle';
+            });
+
+            const tagSpinLong = document.getElementById('spin-long');
+            tagSpinLong.addEventListener('click', (event) => {
+                roulette.spinMode = 'spin-long';
             });
 
             const animation = new Animation((args) => {
