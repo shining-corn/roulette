@@ -322,18 +322,24 @@
 
             start() {
                 if (this.velocity == 0) {
-                    if (this.entropyMode && this.lastSelected != null) {
-                        this.entropies[this.lastSelected] = 0;
-
-                        if (this.entropies.reduce((previousValue, currentValue) => previousValue + currentValue) == 0) {
-                            for (let i = 0; i < this.entropies.length; i++) {
-                                this.entropies[i] = 1;
-                            }
-                        }
-                    }
+                    this.removeLastItem();
 
                     this.velocity = this.spinMode === 'spin-long' ? 10 : 20;
                     this.decelerationPoint = Math.random() * 360;
+                }
+            }
+
+            removeLastItem() {
+                if (this.entropyMode && this.lastSelected != null) {
+                    this.entropies[this.lastSelected] = 0;
+
+                    if (this.entropies.reduce((previousValue, currentValue) => previousValue + currentValue) == 0) {
+                        for (let i = 0; i < this.entropies.length; i++) {
+                            this.entropies[i] = 1;
+                        }
+                    }
+
+                    this.lastSelected = null;
                 }
             }
 
@@ -510,6 +516,7 @@
             });
 
             tagResult.children[1].addEventListener('click', () => {
+                roulette.removeLastItem();
                 tagResult.classList.add('hidden');
             });
 
