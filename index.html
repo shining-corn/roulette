@@ -434,8 +434,12 @@
                     ctx.fillStyle = 'white';
                     ctx.textBaseline = 'middle';
                     ctx.rotate(angleBySlice / 2);
-                    ctx.font = '48px serif';
                     const text = this.list[i];
+                    const maxFontSizeLevel = 3;
+                    const baseFontSize = 72;
+                    const length = Math.max(text.length, this.list.length - 3);
+                    const fontSize = length <= maxFontSizeLevel ? (baseFontSize * (maxFontSizeLevel - length + 1)) : baseFontSize;
+                    ctx.font = `${fontSize}px Meiryo`;
                     const textWidth = ctx.measureText(text).width;
                     if (textWidth < this.radius) {
                         ctx.fillText(text, (this.radius - textWidth + 28) / 2, 0);
