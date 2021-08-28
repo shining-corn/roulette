@@ -129,16 +129,16 @@
                 <legend>設定</legend>
                 <fieldset>
                     <legend>マス</legend>
-                    <div class="scroll-area">
-                        <ul id="list">
-                        </ul>
-                    </div>
-
                     <div>
                         <form action="#" method="get">
                             <input type="text" id="item" maxlength="30">
-                            <input type="submit" id="add" disabled="disabled" value="追加"></input>
+                            <input type="submit" id="add" disabled="disabled" value="追加">
                         </form>
+                    </div>
+
+                    <div class="scroll-area">
+                        <ul id="list">
+                        </ul>
                     </div>
                 </fieldset>
 
@@ -151,6 +151,29 @@
                     </fieldset>
                     <br>
                     <label><input id="equally" type="checkbox">均等に出るモード</label><br>
+                    <br>
+
+                    <fieldset>
+                        <legend>設定をブラウザに保存</legend>
+                        <form action="#" method="get">
+                            <label>設定の名前<br>
+                                <input type="text" id="setting-name" maxlength="32" style="width: 100%">
+                            </label><br>
+                            <div style="width: 100%; text-align:right; margin-top: 0.5rem;">
+                                <input type="submit" id="save-setting" disabled="disabled" value="保存">
+                            </div>
+                        </form>
+                    </fieldset>
+
+                    <fieldset id="load-setting-fieldset" class="hidden">
+                        <legend>設定をロード</legend>
+                        <select id="setting-list" style="width: 100%"></select><br>
+                        <div style="width: 100%; text-align:right; margin-top: 0.5rem;">
+                            <button id="load-setting">ロード</button><br>
+                            <br>
+                            <button id="delete-setting" style="color: #AA0000">削除</button>
+                        </div>
+                    </fieldset>
                 </div>
             </fieldset>
         </div>
@@ -170,6 +193,14 @@
         <hr>
         <ul>
             <li>自己責任でご自由にお使いください。</li>
+
+            <li>説明
+                <ul>
+                    <li>「均等に出るモード」にすると、一度出たマスは他のマスがすべて出るまで出なくなります。</li>
+                    <li>「設定をブラウザに保存」をすると、「設定」枠内の内容をブラウザに保存します。<br>
+                        ブラウザに保存するので、保存した設定情報を他のブラウザや他のデバイスとは共有できません。</li>
+                </ul>
+            </li>
             <li>ライセンス
                 <div class="license">
                     <p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
@@ -302,6 +333,17 @@
                 }
             }
 
+            _clearItem() {
+                while (this.tagList.firstChild) {
+                    this.tagList.removeChild(this.tagList.firstChild);
+                }
+
+                this.listReceiver.setList([]);
+                if (this.postChangeList) {
+                    this.postChangeList();
+                }
+            }
+
             _makeList() {
                 const list = [];
                 for (let i = 0; i < this.tagList.children.length; i++) {
@@ -309,6 +351,17 @@
                 }
 
                 return list;
+            }
+
+            getSetting() {
+                return this._makeList();
+            }
+
+            setSetting(setting) {
+                this._clearItem();
+                for (const item of setting) {
+                    this._addItem(item);
+                }
             }
         }
 
@@ -417,7 +470,7 @@
             draw(canvas) {
                 const ctx = canvas.getContext('2d');
                 let angleBySlice;
-                if (this.entropyMode) {
+                if (this.entropyMode && this.list.length) {
                     const sum = this.entropies.reduce((previousValue, currentValue) => previousValue + currentValue);
                     angleBySlice = 2 * Math.PI / sum;
                 }
@@ -527,6 +580,149 @@
 
                 this.onStop(this.list[selected]);
             }
+
+            getSetting() {
+                return {
+                    spinMode: this.spinMode,
+                    entropyMode: this.entropyMode
+                }
+            }
+
+            setSetting(setting) {
+                this.spinMode = setting.spinMode;
+                document.getElementById('spin-short').checked = this.spinMode === 'spin-short';
+                document.getElementById('spin-middle').checked = this.spinMode === 'spin-middle';
+                document.getElementById('spin-long').checked = this.spinMode === 'spin-long';
+
+                this.entropyMode = setting.entropyMode;
+                document.getElementById('equally').checked = this.entropyMode;
+            }
+        }
+
+        class SettingsStrage {
+            constructor(roulette, list) {
+                this.roulette = roulette;
+                this.list = list;
+
+                this.tagName = document.getElementById('setting-name');
+                this.tagSubmit = document.getElementById('save-setting');
+                this.tagLoadFieldSet = document.getElementById('load-setting-fieldset');
+                this.tagSettingList = document.getElementById('setting-list');
+                this.tagLoadSetting = document.getElementById('load-setting');
+                this.tagDeleteSetting = document.getElementById('delete-setting');
+
+                this.tagName.addEventListener('change', this._getSettingNameEventHandler());
+                this.tagName.addEventListener('input', this._getSettingNameEventHandler());
+                this.tagName.addEventListener('keyup', this._getSettingNameEventHandler());
+
+                this.tagSubmit.addEventListener('click', this._getSubmitHandler());
+
+                this.tagLoadSetting.addEventListener('click', this._getLoadSettingHandler());
+                this.tagDeleteSetting.addEventListener('click', this._getDeleteSettingHandler());
+
+                const rouletteSettings = this._loadFromLocalStorage();
+                if (rouletteSettings.length) {
+                    this._updateOpenList(rouletteSettings);
+                }
+            }
+
+            _saveToLocalStorage(rouletteSettings) {
+                try {
+                    localStorage.setItem('roulette-settings', JSON.stringify(rouletteSettings));
+                }
+                catch (e) {
+                    return false;
+                }
+                return true;
+            }
+
+            _loadFromLocalStorage() {
+                return JSON.parse(localStorage.getItem('roulette-settings') ?? "[]");
+            }
+
+            _getSettingNameEventHandler() {
+                return (event) => {
+                    if (event.target.value.length) {
+                        this.tagSubmit.removeAttribute('disabled');
+                    }
+                    else {
+                        this.tagSubmit.setAttribute('disabled', 'disabled');
+                    }
+                }
+            }
+
+            _getSubmitHandler() {
+                return (event) => {
+                    const name = this.tagName.value;
+                    this.tagName.value = '';
+                    this.tagSubmit.setAttribute('disabled', 'disabled');
+
+                    const setting = {
+                        roulette: this.roulette.getSetting(),
+                        list: this.list.getSetting()
+                    };
+
+                    const rouletteSettings = this._loadFromLocalStorage();
+                    rouletteSettings.push({ name, setting });
+                    if (!this._saveToLocalStorage(rouletteSettings)) {
+                        alert('保存に失敗しました。');
+                        event.preventDefault();
+                        return false;
+                    }
+                    alert('保存しました');
+
+                    this._updateOpenList(rouletteSettings);
+                    this.tagSettingList.options[this.tagSettingList.options.length - 1].selected = true;
+
+                    event.preventDefault();
+                    return false;
+                }
+            }
+
+            _updateOpenList(newSettings) {
+                while (this.tagSettingList.firstChild) {
+                    this.tagSettingList.removeChild(this.tagSettingList.firstChild);
+                }
+
+                for (const setting of newSettings) {
+                    const newOption = document.createElement('option');
+                    newOption.value = setting.name;
+                    newOption.innerText = setting.name;
+                    this.tagSettingList.appendChild(newOption);
+                }
+
+                this.tagLoadFieldSet.classList.remove('hidden');
+            }
+
+            _getLoadSettingHandler() {
+                return (event) => {
+                    const rouletteSettings = this._loadFromLocalStorage();
+                    const index = document.getElementById('setting-list').selectedIndex;
+                    this.roulette.setSetting(rouletteSettings[index].setting.roulette);
+                    this.list.setSetting(rouletteSettings[index].setting.list);
+                }
+            }
+
+            _getDeleteSettingHandler() {
+                return (event) => {
+                    const tagSelectList = document.getElementById('setting-list');
+                    const message = tagSelectList.value + "を削除しますか？";
+                    const result = window.confirm(message);
+
+                    if (result) {
+                        const rouletteSettings = this._loadFromLocalStorage()
+                        const index = tagSelectList.selectedIndex;
+                        rouletteSettings.splice(index, 1);
+
+                        this._saveToLocalStorage(rouletteSettings);
+                        this._updateOpenList(rouletteSettings);
+
+                        if (rouletteSettings.length === 0) {
+                            this.tagLoadFieldSet.classList.add('hidden');
+                        }
+                    }
+                }
+            }
         }
 
         (() => {
@@ -541,7 +737,6 @@
             });
 
             const tagResult = document.getElementById('result');
-            const list = new List();
             const roulette = new Roulette({
                 list: ['1', '2', '3'],
                 x: canvas.width / 2,
@@ -569,6 +764,7 @@
                 tagResult.classList.add('hidden');
             });
 
+            const list = new List();
             list.listReceiver = roulette;
             list.init();
             list.postChangeList = () => {
@@ -606,6 +802,8 @@
                 roulette.do();
                 roulette.draw(canvas);
             });
+
+            const settingStrage = new SettingsStrage(roulette, list);
 
             animation.run();
         })();
